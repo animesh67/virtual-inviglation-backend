@@ -37,6 +37,21 @@ app.get("/quiz", async(req, res) => {
     const list = await getQuizList(user);
     res.status(200).send(list)
 })
+
+app.get("/get-subjects", async(req, res) => {
+    const user = jwtHelper.verifyToken(req)
+    res.status(200).send(user.courseNames)
+})
+
+app.post("/upload-quiz", async(req, res) => {
+    const user = jwtHelper.verifyToken(req);
+    if (user.access === 'student') {
+        res.send(401)
+    } else {
+        console.log(req.body)
+    }
+})
+
 app.get("quiz-questions", async(req, res) => {
 
 })
@@ -55,8 +70,6 @@ app.post("register-students", async(req, res) => {
 
 })
 
-app.post("upload-quiz", async(req, res) => {
 
-})
 
 app.listen(3000, () => console.log("listening to server"));
