@@ -1,7 +1,7 @@
 const express = require("express")
 const cors = require("cors")
 const jwtHelper = require("./services/jwtToken")
-const { changePassword, getQuizList } = require("./services/database")
+const { changePassword, getActiveQuizList, uploadQuiz, getQuizQuestions } = require("./services/database")
 const app = express()
 
 app.use(express.urlencoded({ extended: true }));
@@ -34,7 +34,7 @@ app.post("/forgot-password", (req, res) => {
 
 app.get("/quiz", async(req, res) => {
     const user = jwtHelper.verifyToken(req)
-    const list = await getQuizList(user);
+    const list = await getActiveQuizList(user);
     res.status(200).send(list)
 })
 
@@ -48,12 +48,14 @@ app.post("/upload-quiz", async(req, res) => {
     if (user.access === 'student') {
         res.send(401)
     } else {
-        console.log(req.body)
+        await uploadQuiz(req);
+        res.status(200).send("upload successfull");
     }
 })
 
 app.get("quiz-questions", async(req, res) => {
-
+    const user = jwtHelper.verifyToken(req)
+    await getQuizQuestions(req, user, res);
 })
 
 app.get("quiz-results", async(req, res) => {
