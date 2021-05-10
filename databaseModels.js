@@ -18,18 +18,22 @@ const User = sequelize.define("users", {
     "id": {
         type: Sequelize.INTEGER,
         allowNull: false,
-        primaryKey: true,
         autoIncrement: true
 
     },
-    "courses_enrolled": {
-        type: Sequelize.ARRAY(Sequelize.INTEGER),
+    "courses": {
+        type: Sequelize.ARRAY(Sequelize.TEXT),
     },
     "name": Sequelize.TEXT,
-    "emailId": Sequelize.TEXT,
+    "email": {
+        type: Sequelize.TEXT,
+        allowNull: false,
+        primaryKey: true,
+    },
     "password": Sequelize.TEXT,
-    "sid": Sequelize.INTEGER,
-    "access": Sequelize.TEXT
+    "sid_tid": Sequelize.INTEGER,
+    "access": Sequelize.TEXT,
+    "image": Sequelize.TEXT
 });
 
 const Course = sequelize.define("courses", {
@@ -40,7 +44,6 @@ const Course = sequelize.define("courses", {
         autoIncrement: true
 
     },
-    "instructor": Sequelize.TEXT,
     "courseId": Sequelize.INTEGER,
     "course_name": Sequelize.TEXT
 });

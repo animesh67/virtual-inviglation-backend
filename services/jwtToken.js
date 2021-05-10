@@ -1,38 +1,64 @@
 const jwt = require("jsonwebtoken")
 const { User, Course, Op } = require("../databaseModels")
 const { JWT_SECRET_KEY } = require("../enums/enums").ENUMS
+const axios = require("axios");
 
 generateToken = async(params) => {
+    let user;
     try {
-        let user = await User.findAll({
-            where: { emailId: params.username, password: params.password }
-        })
+        if (params.googleToken) {
+            let resp = await axios.get(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${params.googleToken}`)
+            resp = resp.data;
+            if (resp.error === "invalid_token") {
+                throw new Error({ error: resp });
+            }
+            user = await User.findAll({
+                where: { email: resp.email }
+            })
+        } else {
+            user = await User.findAll({
+                where: { email: params.email, password: params.password }
+            })
+        }
         if (user === []) {
             throw new Error({ error: "user does not exist" });
         }
         user = user[0].dataValues;
-        const courses = await Course.findAll({
-            attributes: ["course_name"],
+        let courses = await Course.findAll({
             where: {
                 courseId: {
-                    [Op.in]: user.courses_enrolled
+                    [Op.in]: user.courses
                 }
             }
         })
-        user.courseNames = []
+        let c = {}
+        console.log(courses)
         courses.forEach(el => {
-            user.courseNames.push(el.dataValues.course_name)
+            c[el.dataValues.courseId] = el.dataValues.course_name;
         })
+        let isM = false;
+        if (user.image) {
+            isM = true
+        }
+        user.image = ""
+        user.courses = c;
         const token = jwt.sign(user, JWT_SECRET_KEY);
-        return { token: token, name: user.name, sid: user.sid, access: user.access };
+        return {
+            token: token,
+            name: user.name,
+            emailId: user.email,
+            sid_tid: user.sid_tid,
+            access: user.access,
+            courses: c,
+            isImage: isM
+        };
 
-    } catch (err) { return null }
+    } catch (err) { console.log(err); return null }
 }
 
 verifyToken = (req) => {
     let tokenHeaderKey = "bearertoken";
     let jwtSecretKey = JWT_SECRET_KEY;
-
     try {
         const token = req.headers[tokenHeaderKey];
         const verified = jwt.verify(token, jwtSecretKey);
@@ -42,7 +68,8 @@ verifyToken = (req) => {
             throw new Error({ status: 401, error: "Token verification unsuccessful" })
         }
     } catch (error) {
-        throw error;
+        console.log(error);
+        return null;
     }
 }
 module.exports = {

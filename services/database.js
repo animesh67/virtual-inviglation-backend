@@ -1,46 +1,92 @@
 const { User, QuizList, Op } = require("../databaseModels")
+var moment = require('moment')
 
-const changePassword = async(body, res, jwt) => {
-    const user = await User.findOne({ where: { id: jwt.id } })
+
+
+const changePassword = async(body, verified, res) => {
+    const user = await User.findOne({ where: { id: verified.id } })
+    console.log(user);
     if (user.password !== body.old) {
         res.status(400).send("Old password Incorrect");
         return;
     }
-    user.dataValues.password = body.new;
-    const p = await User.update(user.dataValues, { where: { id: jwt.id } })
+    await User.update({ password: body.new }, { where: { id: verified.id } })
 }
 
-const getActiveQuizList = async(user) => {
+
+
+const getActiveQuizList = async(user, param) => {
+    courseNames = [];
+    for (let i in user.courses) {
+        courseNames.push(user.courses[i]);
+    }
     let list;
-    if (user.access != "student") {
+    if (user.access !== "student") {
         list = await QuizList.findAll({
             attributes: ["id", "subject_name", "start_date", "duration", "is_active"],
+            where: {
+                is_active: true,
+            }
         });
     } else {
         list = await QuizList.findAll({
             attributes: ["id", "subject_name", "start_date", "duration", "is_active"],
             where: {
                 "subject_name": {
-                    [Op.in]: user.courseNames
+                    [Op.in]: courseNames
                 },
                 is_active: true,
             }
         });
     }
-
     let quizList = [];
     list.forEach(el => {
-        if (el.dataValues.is_active === true)
+        let startDate = moment(el.start_date, 'YYYY-MM-DD HH:mm:ss')
+        let endDate = moment(new Date())
+        let secondsDiff = endDate.diff(startDate, 'seconds')
+        console.log(param, secondsDiff, (Number(el.duration) * 60))
+        if (param === "Past Quizzes" && secondsDiff > (Number(el.duration) * 60))
+            quizList.push(el.dataValues)
+        if (param !== "Past Quizzes" && secondsDiff < (Number(el.duration) * 60)) {
+            quizList.push(el.dataValues);
+        }
+    })
+    console.log(new Date())
+    return quizList;
+}
+
+
+const getList = async(user) => {
+    let courseNames = [];
+    for (let i in user.courses) {
+        courseNames.push(user.courses[i]);
+    }
+    list = await QuizList.findAll({
+        attributes: ["id", "subject_name", "start_date", "duration", "is_active"],
+        where: {
+            "subject_name": {
+                [Op.in]: courseNames
+            },
+            is_active: true,
+        }
+    });
+    let quizList = [];
+    list.forEach(el => {
+        let startDate = moment(el.start_date, 'YYYY-MM-DD HH:mm:ss')
+        let endDate = moment(new Date())
+        let secondsDiff = endDate.diff(startDate, 'seconds')
+        if (secondsDiff > (Number(el.duration) * 60))
             quizList.push(el.dataValues)
     })
     return quizList;
 }
 
+
 const uploadQuiz = async(req) => {
     console.log(req.body)
     const upload = await QuizList.create({
         "subject_name": req.body.subjectName,
-        "start_date": req.body.date,
+        "start_date": Date(req.body.date),
         "duration": req.body.duration,
         "questions": req.body.questions,
         "is_active": true
@@ -64,6 +110,7 @@ const getQuizQuestions = async(req, user, res) => {
 
 }
 module.exports = {
+    getList,
     changePassword,
     getActiveQuizList,
     uploadQuiz,
