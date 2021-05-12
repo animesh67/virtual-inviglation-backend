@@ -13,13 +13,11 @@ const app = express()
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(express.json({ limit: '10mb' }))
 app.use(function(req, res, next) {
-    res.setHeader("Access-Control-Allow-Methods", "POST, PUT, OPTIONS, DELETE, GET");
-    res.header("Access-Control-Allow-Origin", 'http://localhost:3000');
-    res.header("Access-Control-Allow-Origin", req.headers.origin);
+    res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, bearertoken");
-    res.header("Access-Control-Allow-Credentials", true);
     next();
 });
+
 
 app.get('/video/:sid/:qid', (req, res) => {
     const range = req.headers.range;
@@ -191,7 +189,28 @@ app.post("/register-course", async(req, res) => {
     res.status(401)
 })
 
+const server = require('http').Server(app)
+const io = require('socket.io')(server, {
+    cors: {
+        origin: "*",
+        credentials: true
+    }
+});
 
+const port = 3000;
 
+io.on('connection', (socket) => {
+    socket.on('join', (data) => {
+        const roomName = data.roomName;
+        socket.join(roomName);
+        socket.to(roomName).broadcast.emit('new-user', data)
 
-app.listen(3000, () => console.log("listening to server"));
+        socket.on('disconnect', () => {
+            socket.to(roomName).broadcast.emit('bye-user', data)
+        })
+    })
+})
+
+server.listen(port, () => {
+    console.log(`Server running port ${port}`)
+});
