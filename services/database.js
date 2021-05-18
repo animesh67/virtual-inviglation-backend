@@ -1,6 +1,5 @@
-const { User, QuizList, Op } = require("../databaseModels")
-var moment = require('moment')
-
+const { User, QuizList, Op, Course } = require("../databaseModels")
+var moment = require('moment');
 
 
 const changePassword = async(body, verified, res) => {
@@ -12,8 +11,6 @@ const changePassword = async(body, verified, res) => {
     }
     await User.update({ password: body.new }, { where: { id: verified.id } })
 }
-
-
 
 const getActiveQuizList = async(user, param) => {
     courseNames = [];
@@ -44,17 +41,16 @@ const getActiveQuizList = async(user, param) => {
         let startDate = moment(el.start_date, 'YYYY-MM-DD HH:mm:ss')
         let endDate = moment(new Date())
         let secondsDiff = endDate.diff(startDate, 'seconds')
-        console.log(param, secondsDiff, (Number(el.duration) * 60))
+
         if (param === "Past Quizzes" && secondsDiff > (Number(el.duration) * 60))
             quizList.push(el.dataValues)
         if (param !== "Past Quizzes" && secondsDiff < (Number(el.duration) * 60)) {
             quizList.push(el.dataValues);
         }
     })
-    console.log(new Date())
+
     return quizList;
 }
-
 
 const getList = async(user) => {
     let courseNames = [];
@@ -81,7 +77,6 @@ const getList = async(user) => {
     return quizList;
 }
 
-
 const uploadQuiz = async(req) => {
     console.log(req.body)
     const upload = await QuizList.create({
@@ -92,6 +87,7 @@ const uploadQuiz = async(req) => {
         "is_active": true
     }).then(data => data).catch(err => { console.log(err); return err; })
 }
+
 const getQuizQuestions = async(req, user, res) => {
     try {
         if (!user.courseNames.includes(req.body.subjectName)) {
@@ -109,7 +105,35 @@ const getQuizQuestions = async(req, user, res) => {
 
 
 }
+
+const addSingle = async(user) => {
+    let courses = [];
+    user.courses.split(",").forEach(e => {
+        courses.push(e.trim().toUpperCase())
+    })
+    user.courses = courses;
+    await User.upsert(user)
+}
+
+const addCourse = async(course) => {
+    console.log(course)
+    course.courseId = course.courseId.toUpperCase()
+    await Course.create(course)
+}
+const getImg = async(user) => {
+
+    if (user.sid) {
+        const img = await User.findOne({ where: { sid_tid: user.sid } });
+        return img.image;
+    }
+    const img = await User.findOne({ where: { id: user.id } });
+    return img.image;
+}
+
 module.exports = {
+    getImg,
+    addCourse,
+    addSingle,
     getList,
     changePassword,
     getActiveQuizList,

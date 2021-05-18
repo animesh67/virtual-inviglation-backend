@@ -63,9 +63,23 @@ const QuizList = sequelize.define("quiz_lists", {
     "is_active": Sequelize.BOOLEAN
 });
 
+const QuizResponse = sequelize.define("quiz_responses", {
+    "id": {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        primaryKey: true,
+        autoIncrement: true
+
+    },
+    sid: Sequelize.BIGINT,
+    responses: Sequelize.JSONB,
+    quiz_id: Sequelize.BIGINT
+})
+
 
 
 module.exports = {
+    QuizResponse,
     User,
     Course,
     QuizList,

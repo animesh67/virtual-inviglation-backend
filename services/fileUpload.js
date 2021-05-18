@@ -1,6 +1,7 @@
 const multer = require("multer");
 const CSVToJSON = require('csvtojson');
 const { User } = require("../databaseModels")
+var uc = require('upper-case');
 
 var storage = multer.diskStorage({ //multers disk storage settings
     destination: function(req, file, cb) {
@@ -28,13 +29,14 @@ const add = (req, res) => {
             .then(us => {
                 us.forEach(el => {
                     let course = [];
-                    el.courses.split(",").forEach(el => course.push(el))
+                    el.courses.split(",").forEach(el => course.push(el.toUpperCase()))
                     el.courses = course;
                     User.upsert(el).then().catch(err => {
                         console.log(err);
                         res.send("error in gettin data")
                     });
                 })
+                res.send({ status: "done" })
             }).catch(err => {
                 console.log(err);
                 res.json({ error_code: 1, err_desc: err });
