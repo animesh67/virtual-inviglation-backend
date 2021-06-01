@@ -1,7 +1,6 @@
 const multer = require("multer");
 const CSVToJSON = require('csvtojson');
 const { User } = require("../databaseModels")
-var uc = require('upper-case');
 
 var storage = multer.diskStorage({ //multers disk storage settings
     destination: function(req, file, cb) {

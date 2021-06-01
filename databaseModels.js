@@ -60,7 +60,9 @@ const QuizList = sequelize.define("quiz_lists", {
     "start_date": Sequelize.DATE,
     "duration": Sequelize.INTEGER,
     "questions": Sequelize.JSONB,
-    "is_active": Sequelize.BOOLEAN
+    "is_active": Sequelize.BOOLEAN,
+    details: Sequelize.JSONB,
+    "result_status": Sequelize.TEXT
 });
 
 const QuizResponse = sequelize.define("quiz_responses", {
@@ -73,7 +75,9 @@ const QuizResponse = sequelize.define("quiz_responses", {
     },
     sid: Sequelize.BIGINT,
     responses: Sequelize.JSONB,
-    quiz_id: Sequelize.BIGINT
+    quiz_id: Sequelize.BIGINT,
+    score: Sequelize.BIGINT,
+    tabSwitching: Sequelize.JSONB
 })
 
 

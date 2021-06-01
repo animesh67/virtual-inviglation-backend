@@ -6,15 +6,25 @@ const {
     changePassword,
     getActiveQuizList,
     uploadQuiz,
-    getQuizQuestions,
     getList,
     addSingle,
     addCourse,
     getImg
 } = require("./services/database")
-const { getQuiz, getStudents, deleteQuiz, postImage, previewQuiz } = require("./services/helpers");
+const {
+    getQuiz,
+    getStudents,
+    deleteQuiz,
+    postImage,
+    previewQuiz,
+    getQuizQuestions,
+    uploadResp,
+    getResults,
+    getResultStatus,
+    tabSwitch
+} = require("./services/helpers");
 const { add } = require("./services/fileUpload")
-const { sendMail } = require("./services/email")
+const { sendMail, releaseResults } = require("./services/email")
 const { ProctoringDataList } = require("./services/proctoringDataList")
 const fs = require("fs")
 
@@ -41,7 +51,7 @@ app.get('/video/:sid/:qid', (req, res) => {
     }
 
     // get video stats (about 61MB)
-    const videoPath = __dirname + "/videos/a.mp4";
+    const videoPath = __dirname + `/../webcam-videos/${req.params.qid}/${req.params.sid}.webm`;
     const videoSize = fs.statSync(videoPath).size;
 
     // Parse Range
@@ -131,6 +141,26 @@ app.get('/getImg', async function(req, res) {
     }
 });
 
+app.delete('/getImg', async function(req, res) {
+    console.log("pppppp")
+    const user = await jwtHelper.verifyToken(req);
+    if (user === null || user.access === "admin") {
+        res.status(401).send("User Not Registered");
+        return;
+    }
+    try {
+        if (req.query.id) {
+            user.sid = req.query.id;
+        }
+        let img = await getImg(user, "delete");
+        res.status(200).send({ img: img });
+    } catch (err) {
+        console.log(err)
+        res.status(400).send({ status: "error" })
+    }
+});
+
+
 app.post('/addCourse', async function(req, res) {
     console.log(req.headers)
     const user = await jwtHelper.verifyToken(req);
@@ -172,6 +202,16 @@ app.post("/post-image", async(req, res) => {
     res.status(200).send({ status: 200, message: "Upload Successful" })
 })
 
+app.post("/tab/:id", async(req, res) => {
+    const user = await jwtHelper.verifyToken(req);
+    if (user === null || user.access === "admin") {
+        res.status(401).send("User Not Registered");
+        return;
+    }
+    await tabSwitch(req, user);
+    res.status(200).send({ status: 200, message: "Upload Successful" })
+})
+
 app.post("/change-password", async(req, res) => {
     try {
         const user = jwtHelper.verifyToken(req)
@@ -209,6 +249,11 @@ app.post("/forgot-password", (req, res) => {
 
 })
 
+app.get("/getResultsStatus", async(req, res) => {
+    const status = await getResultStatus(req);
+    res.status(200).send(status);
+})
+
 app.get("/quiz/:data", async(req, res) => {
     const user = jwtHelper.verifyToken(req)
     let list;
@@ -217,13 +262,6 @@ app.get("/quiz/:data", async(req, res) => {
     else
         list = await getActiveQuizList(user, req.params.data);
     console.log(list)
-    res.status(200).send(list)
-})
-
-app.get("/results/:id", async(req, res) => {
-    console.log(req.headers)
-    const user = jwtHelper.verifyToken(req)
-    const list = await getActiveQuizLzist(user, req.params.data);
     res.status(200).send(list)
 })
 
@@ -255,13 +293,29 @@ app.post("/upload-quiz", async(req, res) => {
     }
 })
 
-app.get("quiz-questions", async(req, res) => {
-    const user = jwtHelper.verifyToken(req)
-    await getQuizQuestions(req, user, res);
+app.post("/responses", async(req, res) => {
+    const user = jwtHelper.verifyToken(req);
+    if (user.access !== 'student') {
+        res.send(401)
+    } else {
+        await uploadResp(req, user);
+        res.status(200).send("upload successfull");
+    }
 })
 
-app.get("quiz-results", async(req, res) => {
 
+app.get("/results", async(req, res) => {
+    const user = jwtHelper.verifyToken(req);
+    if (user === null || user.access === 'student') {
+        res.send(401)
+    } else {
+        let results = await getResults(req.query.id, user);
+        if (results === null) {
+            res.sendStatus(400);
+            return;
+        }
+        res.status(200).send({ data: results });
+    }
 })
 app.post("/register-course", async(req, res) => {
     if (jwtHelper.verifyToken(req)) {
@@ -299,6 +353,44 @@ app.delete("/liveProctoring", (req, res) => {
 
     }
 })
+
+app.get("/getQues", async(req, res) => {
+    const user = jwtHelper.verifyToken(req);
+    if (user === null) {
+        res.send(401)
+    } else {
+        let ques = await getQuizQuestions(req.query, user);
+        let questions = [];
+        if (ques.questions[0].type === "googleForm") {
+            questions = { type: "googleForm", link: ques.questions[0].link }
+        } else {
+            ques.questions.forEach(e => {
+                let ops = [e.option1, e.option2, e.option3, e.option4];
+                questions.push({
+                    q: e.ques,
+                    o: ops,
+                    ans: ""
+                });
+            })
+        }
+        console.log(ques)
+        res.status(200).send({
+            subject: ques.subject_name,
+            duration: ques.duration,
+            ques: questions
+        })
+
+    }
+})
+
+app.get("/releaseResults", (req, res) => {
+    console.log("yes")
+    res.status(200).send({ o: "done" });
+    releaseResults(req.query.id);
+})
+
+
+
 
 
 const port = 3000;

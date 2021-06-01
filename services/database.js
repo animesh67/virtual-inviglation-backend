@@ -78,6 +78,9 @@ const getList = async(user) => {
 }
 
 const uploadQuiz = async(req) => {
+    if (req.body.type === "googleForm") {
+        req.body.questions = [{ type: "googleForm", link: req.body.googleForm }]
+    }
     console.log(req.body)
     const upload = await QuizList.create({
         "subject_name": req.body.subjectName,
@@ -120,8 +123,17 @@ const addCourse = async(course) => {
     course.courseId = course.courseId.toUpperCase()
     await Course.create(course)
 }
-const getImg = async(user) => {
-
+const getImg = async(user, del = "") => {
+    if (del === "delete") {
+        await User.update({
+            image: null
+        }, {
+            where: {
+                sid_tid: user.sid
+            }
+        })
+        return "";
+    }
     if (user.sid) {
         const img = await User.findOne({ where: { sid_tid: user.sid } });
         return img.image;

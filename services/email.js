@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const { User } = require("../databaseModels");
+const { User, QuizResponse, QuizList } = require("../databaseModels");
 var transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -8,13 +8,14 @@ var transporter = nodemailer.createTransport({
     }
 });
 
-var mailOptions = {
-    from: 'animeshgarg39@gmail.com',
-    to: '',
-    subject: 'Password Reset Mail',
-    text: 'This is your Temporary Password Valid for 10 minutes, Login with this and then change your password'
-};
+
 const sendMail = async(to) => {
+    let mailOptions = {
+        from: 'animeshgarg39@gmail.com',
+        to: '',
+        subject: 'Password Reset Mail',
+        text: 'This is your Temporary Password Valid for 10 minutes, Login with this and then change your password'
+    };
     mailOptions.to = to;
     let pswd = `PaS@12${Date.now()}`;
     await User.update({ password: pswd }, { where: { email: to } });
@@ -31,7 +32,16 @@ const sendMail = async(to) => {
     });
 }
 
+const releaseResults = (quizId) => {
+    let mailOptions = {
+        from: 'animeshgarg39@gmail.com',
+        to: '',
+        subject: 'Password Reset Mail',
+        text: 'This is your Temporary Password Valid for 10 minutes, Login with this and then change your password'
+    };
+}
 
 module.exports = {
+    releaseResults,
     sendMail
 }
