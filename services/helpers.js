@@ -1,5 +1,6 @@
 const { Course, User, QuizList, QuizResponse } = require("../databaseModels");
 const { writeFileSync } = require("fs")
+const axios = require('axios');
 
 const getQuiz = async(subjectName) => {
     try {
@@ -118,7 +119,6 @@ const getResults = async(quizId, user) => {
 
 }
 
-const axios = require('axios')
 
 
 startEvaluation = async(quizList, quizId) => {
@@ -138,7 +138,7 @@ startEvaluation = async(quizList, quizId) => {
 
         })
         .catch(error => {
-            console.error(error)
+
         })
 
     console.log("yes-----")
@@ -194,6 +194,17 @@ let tabSwitch = async(req, user) => {
     await QuizResponse.update({ tabSwitching: req.body }, { where: { sid: user.sid_tid, quiz_id: req.params.id } })
 }
 
+let getTimestamps = async(sid, quizId) => {
+    const res = await QuizResponse.findOne({
+        where: {
+            sid: sid,
+            quiz_id: quizId
+        }
+    })
+    console.log(res)
+    return res.dataValues.timestamps;
+}
+
 module.exports = {
     getResultStatus,
     getResults,
@@ -204,5 +215,6 @@ module.exports = {
     deleteQuiz,
     getQuiz,
     getStudents,
-    tabSwitch
+    tabSwitch,
+    getTimestamps
 }

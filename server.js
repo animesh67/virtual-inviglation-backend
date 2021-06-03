@@ -23,7 +23,8 @@ const {
     uploadResp,
     getResults,
     getResultStatus,
-    tabSwitch
+    tabSwitch,
+    getTimestamps
 } = require("./services/helpers");
 const { add } = require("./services/fileUpload")
 const { sendMail, releaseResults, sendToTeacher } = require("./services/email")
@@ -411,9 +412,17 @@ app.post("/sendEmailToTeacher", async(req, res) => {
     res.send({ "ok": "ok" })
 
 })
+app.get("/getTimestamps", async(req, res) => {
+    console.log(req.query)
+    const timestamps = await getTimestamps(req.query.sid, req.query.quizId)
+    console.log(timestamps)
+    res.send(timestamps)
+
+})
 
 const port = 3000;
 const http = require("http")
+const { time } = require("console")
 let server = http.createServer(app)
 
 const io = require('socket.io')(server, {

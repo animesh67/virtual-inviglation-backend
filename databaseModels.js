@@ -77,7 +77,8 @@ const QuizResponse = sequelize.define("quiz_responses", {
     responses: Sequelize.JSONB,
     quiz_id: Sequelize.BIGINT,
     score: Sequelize.BIGINT,
-    tabSwitching: Sequelize.JSONB
+    tabSwitching: Sequelize.JSONB,
+    timestamps: Sequelize.JSONB
 })
 
 
