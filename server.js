@@ -1,7 +1,9 @@
 process.env.TZ = "UTC"
-
+const { appendFileSync, mkdirSync, } = require("fs")
+const path = require("path")
 const express = require("express")
 const jwtHelper = require("./services/jwtToken")
+const { QuizResponse } = require("./databaseModels")
 const {
     changePassword,
     getActiveQuizList,
@@ -24,7 +26,7 @@ const {
     tabSwitch
 } = require("./services/helpers");
 const { add } = require("./services/fileUpload")
-const { sendMail, releaseResults } = require("./services/email")
+const { sendMail, releaseResults, sendToTeacher } = require("./services/email")
 const { ProctoringDataList } = require("./services/proctoringDataList")
 const fs = require("fs")
 
@@ -284,12 +286,13 @@ app.get("/get-subjects", async(req, res) => {
 })
 
 app.post("/upload-quiz", async(req, res) => {
+    console.log("oo", req.body)
     const user = jwtHelper.verifyToken(req);
     if (user.access === 'student') {
         res.send(401)
     } else {
-        await uploadQuiz(req);
-        res.status(200).send("upload successfull");
+        const data = await uploadQuiz(req);
+        mkdirSync(__dirname + `/../webcam-videos/${data.dataValues.id}`)
     }
 })
 
@@ -389,31 +392,51 @@ app.get("/releaseResults", (req, res) => {
     releaseResults(req.query.id);
 })
 
+app.get("/getQuizStatus", async(req, res) => {
+    const user = jwtHelper.verifyToken(req);
+    if (user === null) {
+        res.send(401)
+    }
+    console.log(req.query.id, user.sid_tid)
+    let re = await QuizResponse.findOne({ where: { quiz_id: req.query.id, sid: user.sid_tid } })
+    if (re !== null) {
+        res.status(200).send({ status: 400 });
+        return;
+    }
+    res.status(200).send({ status: 200 });
+})
 
+app.post("/sendEmailToTeacher", async(req, res) => {
+    await sendToTeacher(req.body.id)
+    res.send({ "ok": "ok" })
 
-
+})
 
 const port = 3000;
-
-
-let server = app.listen(port, () => {
-    console.log(`Server running port ${port}`)
-});
-
+const http = require("http")
+let server = http.createServer(app)
 
 const io = require('socket.io')(server, {
-
+    cors: {
+        origin: "http://localhost:4200",
+        methods: ["GET", "POST"],
+        transports: ['websocket', 'polling'],
+        credentials: true
+    },
+    allowEIO3: true
+})
+io.on("connect_error", (err) => {
+    console.log(`connect_error due to ${err.message}`);
 });
-
-
-io.on('connection', (socket) => {
-    socket.on('join', (data) => {
-        const roomName = data.roomName;
-        socket.join(roomName);
-        socket.to(roomName).broadcast.emit('new-user', data)
-
-        socket.on('disconnect', () => {
-            socket.to(roomName).broadcast.emit('bye-user', data)
-        })
+io.on('connect', (socket) => {
+    console.log("yes")
+    socket.on("join", (data) => {
+        let base64 = data.data.replace(/^data:(.*?);base64,/, ""); // <--- make it any type
+        base64 = base64.replace(/ /g, '+'); // <--- this is important
+        appendFileSync(__dirname + `/../webcam-videos/${data.id}/${data.sid}.webm`, base64, 'base64', function(err) {
+            console.log(err);
+        });
     })
 })
+
+server.listen(port)

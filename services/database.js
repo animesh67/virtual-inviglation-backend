@@ -78,7 +78,8 @@ const getList = async(user) => {
 }
 
 const uploadQuiz = async(req) => {
-    if (req.body.type === "googleForm") {
+    console.log(req.body)
+    if (req.body.type) {
         req.body.questions = [{ type: "googleForm", link: req.body.googleForm }]
     }
     console.log(req.body)
@@ -88,7 +89,8 @@ const uploadQuiz = async(req) => {
         "duration": req.body.duration,
         "questions": req.body.questions,
         "is_active": true
-    }).then(data => data).catch(err => { console.log(err); return err; })
+    }).then(data => data).catch(err => { console.log(err); return err; });
+    return upload
 }
 
 const getQuizQuestions = async(req, user, res) => {

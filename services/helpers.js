@@ -121,7 +121,7 @@ const getResults = async(quizId, user) => {
 const axios = require('axios')
 
 
-startEvaluation = async(res, quizId) => {
+startEvaluation = async(quizList, quizId) => {
     let users = await QuizResponse.findAll({ where: { quiz_id: quizId } });
     let students = [];
     users.forEach(el => {
@@ -142,7 +142,7 @@ startEvaluation = async(res, quizId) => {
         })
 
     console.log("yes-----")
-    if (res.questions[0].type === "googleForm") {
+    if (quizList.questions[0].type === "googleForm") {
         let details = {};
         details.noOfQues = 0;
         details.userAppeared = 0;
@@ -154,7 +154,7 @@ startEvaluation = async(res, quizId) => {
     }
 
     let details = {};
-    let ques = quizList.dataValues.questions;
+    let ques = quizList.questions;
     details.noOfQues = ques.length;
     details.userAppeared = users.length;
     details.mean = 0;
@@ -174,7 +174,7 @@ startEvaluation = async(res, quizId) => {
             await QuizResponse.update({ score: score }, { where: { sid: el.sid, quiz_id: quizId } })
         }
     })
-    await quizList.update({ details: details }, { where: { id: quizId } })
+    await QuizList.update({ details: details }, { where: { id: quizId } })
 }
 
 let getResultStatus = async(req) => {
@@ -183,11 +183,12 @@ let getResultStatus = async(req) => {
         return { status: 200, "message": "results done" }
     }
     if (res.dataValues.result_status === "progress") {
-        return { status: 400, "message": "results under progress" }
+        return { status: 400, "message": "results under progress, you'll get an email" }
     }
-    // const y = await QuizList.update({ result_status: "progress" }, { where: { id: req.query.id } });
+    res = res.dataValues;
     await startEvaluation(res, req.query.id);
-    return { status: 400, "message": "results evaluation started" }
+    const y = await QuizList.update({ result_status: "progress" }, { where: { id: req.query.id } });
+    return { status: 400, "message": "results evaluation has been started, do not press this button again, you'll get an email after the results are evaluated" }
 }
 let tabSwitch = async(req, user) => {
     await QuizResponse.update({ tabSwitching: req.body }, { where: { sid: user.sid_tid, quiz_id: req.params.id } })

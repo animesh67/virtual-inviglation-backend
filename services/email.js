@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const { User, QuizResponse, QuizList } = require("../databaseModels");
+const { User, QuizResponse, QuizList, Course } = require("../databaseModels");
 var transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -7,6 +7,45 @@ var transporter = nodemailer.createTransport({
         pass: 'animeshgarg39'
     }
 });
+
+const sendToTeacher = async(id) => {
+    let quiz = await QuizList.findOne({ where: { id: id } });
+    quiz = quiz.dataValues;
+    let subject = quiz.subject_name
+    let courses = await Course.findOne({ where: { course_name: subject } });
+    let courseId = courses.dataValues.courseId;
+    let user = await User.findAll();
+    to = []
+    user.forEach(element => {
+        element = element.dataValues;
+        element.courses.forEach(e => {
+            if (e === courseId) {
+                to.push(element.email);
+            }
+        })
+    });
+    let body = JSON.stringify({
+        "subject name": subject,
+        "duration": quiz.duration + " mins",
+        "start date": quiz.start_date + "",
+        "No of Questions": quiz.questions.length,
+        "quiz Type": quiz.questions[0].link ? "google form" : "Uploaded through website"
+
+    }, null, 2)
+    let mailOptions = {
+        from: 'animeshgarg39@gmail.com',
+        to: to,
+        subject: 'Quiz Results Cpmpiled',
+        text: body
+    };
+    transporter.sendMail(mailOptions, function(error, info) {
+        if (error) {
+            console.log(error);
+        } else {
+            console.log('Email sent: ' + info.response);
+        }
+    });
+}
 
 
 const sendMail = async(to) => {
@@ -42,6 +81,7 @@ const releaseResults = (quizId) => {
 }
 
 module.exports = {
+    sendToTeacher,
     releaseResults,
     sendMail
 }
